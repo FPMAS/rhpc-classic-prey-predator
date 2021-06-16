@@ -1,0 +1,12 @@
+stop.at=20
+
+grid.width=50
+grid.height=50
+
+prey.count=20
+predator.count=20
+
+grass.init_rate=0.5
+grass.growing_rate=8
+
+random.seed=0
