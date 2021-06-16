@@ -3,24 +3,32 @@
 #include "config.h"
 #include "grass.h"
 
-class Prey {
+enum AgentTypes {
+	PREY = 0,
+	PREDATOR = 1
+};
+
+class PreyPredatorAgent {
 	private:
+		int move_cost;
+		float reproduction_rate;
+
 		repast::AgentId id;
+
+		void initChildLocation(PreyPredatorAgent* child, Grid<PreyPredatorAgent>& grid);
+	protected:
 		int energy;
-		static int init_energy;
-		static int energy_gain;
-		static int move_cost;
-		static float reproduction_rate;
+
+		PreyPredatorAgent(
+				int move_cost, float reproduction_rate,
+				repast::AgentId id, int energy) :
+			move_cost(move_cost), reproduction_rate(reproduction_rate),
+			id(id), energy(energy) {
+			}
+
+		virtual PreyPredatorAgent* build(int energy) = 0;
 
 	public:
-		static int current_prey_id;
-		static const int type;
-
-		Prey(repast::AgentId id) : Prey(id, Prey::init_energy) {
-		}
-		Prey(repast::AgentId id, int energy) : id(id), energy(energy) {
-		}
-
 		repast::AgentId& getId() {return id;}
 		const repast::AgentId& getId() const {return id;}
 
@@ -28,27 +36,42 @@ class Prey {
 
 		void update(int current_rank, int energy);
 
-		void move(Grid<Prey>& grid);
-		void eat(Grid<Prey>& prey_grid, Grid<Grass>& grass_grid);
-		void reproduce(repast::SharedContext<Prey>& context, Grid<Prey>& grid);
-		void die(repast::SharedContext<Prey>& context, Grid<Prey>& grid);
+		void move(Grid<PreyPredatorAgent>& predator_grid, Grid<PreyPredatorAgent>& prey_grid);
+		void reproduce(
+				repast::SharedContext<PreyPredatorAgent>& context,
+				Grid<PreyPredatorAgent>& predator_grid, Grid<PreyPredatorAgent>& prey_grid
+				);
+		void die(
+				repast::SharedContext<PreyPredatorAgent>& context,
+				Grid<PreyPredatorAgent>& predator_grid, Grid<PreyPredatorAgent>& prey_grid);
+
+		virtual void eat(
+				Grid<PreyPredatorAgent>& predator_grid, Grid<PreyPredatorAgent>& prey_grid,
+				Grid<Grass>& grass_grid
+				) = 0;
 };
 
-struct PreyPackage {
-	repast::AgentId id;
-	int energy;
+class Prey : public PreyPredatorAgent {
+	private:
+		static int init_energy;
+		static int energy_gain;
+		static int move_cost;
+		static float reproduction_rate;
 
-	PreyPackage() {};
-	
-	PreyPackage(const Prey& prey) :
-		id(prey.getId()),
-		energy(prey.getEnergy()) {
+		Prey* build(int energy) override;
+
+	public:
+		static int current_prey_id;
+
+		Prey(repast::AgentId id) : Prey(id, Prey::init_energy) {
+		}
+		Prey(repast::AgentId id, int energy) : PreyPredatorAgent(
+					Prey::move_cost, Prey::reproduction_rate, id, energy
+					) {
 		}
 
-	template<typename Archive>
-		void serialize(Archive& ar, const unsigned int) {
-			ar & id;
-			ar & energy;
-		}
+		void eat(
+				Grid<PreyPredatorAgent>& predator_grid, Grid<PreyPredatorAgent>& prey_grid,
+				Grid<Grass>& grass_grid
+				) override;
 };
-

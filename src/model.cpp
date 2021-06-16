@@ -5,7 +5,7 @@
 PreyPredatorModel::PreyPredatorModel(
 		std::string prop_file, int argc, char** argv,
 		boost::mpi::communicator* comm) :
-	context(comm), grass_context(comm), props(prop_file, argc, argv, comm),
+	agent_context(comm), grass_context(comm), props(prop_file, argc, argv, comm),
 	stop_at(repast::strToInt(props.getProperty("stop.at"))),
 	prey_count(repast::strToInt(props.getProperty("prey.count"))),
 	local_prey_count(prey_count/comm->size()),
@@ -13,9 +13,12 @@ PreyPredatorModel::PreyPredatorModel(
 	local_predator_count(predator_count/comm->size()),
 	grid_width(repast::strToInt(props.getProperty("grid.width"))),
 	grid_height(repast::strToInt(props.getProperty("grid.height"))),
-	provider(&context), receiver(&context) {
-		grid = build_grid<Prey>("PreyGrid", comm);   
-		context.addProjection(grid);
+	provider(&agent_context), receiver(&agent_context) {
+		prey_grid = build_grid<PreyPredatorAgent>("PreyGrid", comm);   
+		agent_context.addProjection(prey_grid);
+
+		predator_grid = build_grid<PreyPredatorAgent>("PredatorGrid", comm);   
+		//agent_context.addProjection(predator_grid);
 
 		grass_grid = build_grid<Grass>("GrassGrid", comm);
 		grass_context.addProjection(grass_grid);
@@ -28,24 +31,24 @@ void PreyPredatorModel::init_preys() {
 
 	repast::IntUniformGenerator gen_x = 
 		repast::Random::instance()->createUniIntGenerator(
-				grid->dimensions().origin().getX(),
-				grid->dimensions().origin().getX() + grid->dimensions().extents().getX()-1
+				prey_grid->dimensions().origin().getX(),
+				prey_grid->dimensions().origin().getX() + prey_grid->dimensions().extents().getX()-1
 				);
 	repast::IntUniformGenerator gen_y = 
 		repast::Random::instance()->createUniIntGenerator(
-				grid->dimensions().origin().getY(),
-				grid->dimensions().origin().getY() + grid->dimensions().extents().getY()-1
+				prey_grid->dimensions().origin().getY(),
+				prey_grid->dimensions().origin().getY() + prey_grid->dimensions().extents().getY()-1
 				);
 
 	for(int i = 0; i < local_prey_count; i++) {
-		repast::AgentId id(Prey::current_prey_id++, rank, Prey::type);
+		repast::AgentId id(Prey::current_prey_id++, rank, PREY);
 		id.currentRank(rank);
 
 		repast::Point<int> initial_location(gen_x.next(), gen_y.next());
 
 		Prey* prey = new Prey(id);
-		context.addAgent(prey);
-		grid->moveTo(prey, initial_location);
+		agent_context.addAgent(prey);
+		prey_grid->moveTo(prey, initial_location);
 		std::cout << id << " init location: " << initial_location << std::endl;
 	}
 }
@@ -112,21 +115,21 @@ void PreyPredatorModel::initSchedule(repast::ScheduleRunner& runner) {
 
 void PreyPredatorModel::move() {
 	std::cout << "MOVING AGENTS" << std::endl;
-	std::vector<Prey*> preys;
+	std::vector<PreyPredatorAgent*> agents;
 	
-	context.selectAgents(repast::SharedContext<Prey>::LOCAL, preys);
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, agents);
 
-	for(auto agent : preys)
-		agent->move(*grid);
+	for(auto agent : agents)
+		agent->move(*predator_grid, *prey_grid);
 
-	std::set<Prey*> local_preys;
-	context.selectAgents(repast::SharedContext<Prey>::LOCAL, local_preys);
-	for(auto agent : local_preys)
+	std::set<PreyPredatorAgent*> local_agents;
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, local_agents);
+	for(auto agent : local_agents)
 		std::cout << "LOCAL AGENT: " << agent->getId() << " - " << agent->getEnergy() << std::endl;
 
-	local_preys.clear();
-	context.selectAgents(repast::SharedContext<Prey>::NON_LOCAL, local_preys);
-	for(auto agent : local_preys)
+	local_agents.clear();
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::NON_LOCAL, local_agents);
+	for(auto agent : local_agents)
 		std::cout << "DISTANT AGENT: " << agent->getId() << std::endl;
 
 	this->synchronize();
@@ -134,11 +137,11 @@ void PreyPredatorModel::move() {
 
 void PreyPredatorModel::eat() {
 	std::cout << "AGENTS EAT" << std::endl;
-	std::vector<Prey*> preys;
-	context.selectAgents(repast::SharedContext<Prey>::LOCAL, preys);
+	std::vector<PreyPredatorAgent*> preys;
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
 
 	for(auto agent : preys)
-		agent->eat(*grid, *grass_grid);
+		agent->eat(*predator_grid, *prey_grid, *grass_grid);
 
 	this->synchronize();
 }
@@ -146,22 +149,22 @@ void PreyPredatorModel::eat() {
 void PreyPredatorModel::reproduce() {
 	std::cout << "AGENTS REPRODUCE" << std::endl;
 
-	std::vector<Prey*> preys;
-	context.selectAgents(repast::SharedContext<Prey>::LOCAL, preys);
+	std::vector<PreyPredatorAgent*> preys;
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
 
 	for(auto agent : preys)
-		agent->reproduce(context, *grid);
+		agent->reproduce(agent_context, *predator_grid, *prey_grid);
 
 	this->synchronize();
 }
 
 void PreyPredatorModel::die() {
 	std::cout << "AGENTS DIE" << std::endl;
-	std::vector<Prey*> preys;
-	context.selectAgents(repast::SharedContext<Prey>::LOCAL, preys);
+	std::vector<PreyPredatorAgent*> preys;
+	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
 
 	for(auto agent : preys)
-		agent->die(context, *grid);
+		agent->die(agent_context, *predator_grid, *prey_grid);
 
 	this->synchronize();
 }
@@ -169,23 +172,26 @@ void PreyPredatorModel::die() {
 void PreyPredatorModel::synchronize() {
 	std::cout << "SYNC GRID" << std::endl;
 	// Marks agents to migrate
-	grid->balance();
+	//predator_grid->balance();
+	prey_grid->balance();
 
 	/*
 	 * Sync preys
 	 */
 	// Move agents across processes
-	repast::RepastProcess::instance()
-		->synchronizeAgentStatus<Prey, PreyPackage, PreyPackageProvider,
-		PreyPackageReceiver>(context, provider, receiver, receiver);
+	repast::RepastProcess::instance()->synchronizeAgentStatus<
+		PreyPredatorAgent, PreyPredatorPackage,
+		PreyPredatorPackageProvider, PreyPredatorPackageReceiver>(
+				agent_context, provider, receiver, receiver);
 
 	// Synchronizes projection: builds agent copies in buffer zones
-	repast::RepastProcess::instance()
-		->synchronizeProjectionInfo<Prey, PreyPackage, PreyPackageProvider,
-		PreyPackageReceiver>(context, provider, receiver, receiver);
+	repast::RepastProcess::instance()->synchronizeProjectionInfo<
+		PreyPredatorAgent, PreyPredatorPackage,
+		PreyPredatorPackageProvider, PreyPredatorPackageReceiver>(
+				agent_context, provider, receiver, receiver);
 
 	// Updates agent data
-	repast::RepastProcess::instance()
-		->synchronizeAgentStates<PreyPackage, PreyPackageProvider,
-		PreyPackageReceiver>(provider, receiver);
+	repast::RepastProcess::instance()->synchronizeAgentStates<
+		PreyPredatorPackage, PreyPredatorPackageProvider,
+		PreyPredatorPackageReceiver>(provider, receiver);
 }

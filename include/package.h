@@ -1,51 +1,43 @@
 #include "prey.h"
 
-/*
- * Prey
- */
+struct PreyPredatorPackage {
+	repast::AgentId id;
+	int energy;
 
-class PreyPackageProvider {
-	private:
-		repast::SharedContext<Prey>* agents;
-	public:
-		PreyPackageProvider(repast::SharedContext<Prey>* agents) : agents(agents) {}
+	PreyPredatorPackage() {};
+	
+	PreyPredatorPackage(const PreyPredatorAgent& agent) :
+		id(agent.getId()),
+		energy(agent.getEnergy()) {
+		}
 
-		void providePackage(Prey * agent, std::vector<PreyPackage>& out);
-		void provideContent(repast::AgentRequest req, std::vector<PreyPackage>& out);
+	template<typename Archive>
+		void serialize(Archive& ar, const unsigned int) {
+			ar & id;
+			ar & energy;
+		}
 };
 
-class PreyPackageReceiver {
+class PreyPredatorPackageProvider {
 	private:
-		repast::SharedContext<Prey>* agents;
+		repast::SharedContext<PreyPredatorAgent>* agents;
 	public:
-		PreyPackageReceiver(repast::SharedContext<Prey>* agents) : agents(agents) {}
+		PreyPredatorPackageProvider(repast::SharedContext<PreyPredatorAgent>* agents)
+			: agents(agents) {}
 
-		Prey* createAgent(PreyPackage package);
-		void updateAgent(PreyPackage package);
+		void providePackage(
+				PreyPredatorAgent* agent, std::vector<PreyPredatorPackage>& out);
+		void provideContent(
+				repast::AgentRequest req, std::vector<PreyPredatorPackage>& out);
 };
 
-/*
- * Grass
- */
+class PreyPredatorPackageReceiver {
+	private:
+		repast::SharedContext<PreyPredatorAgent>* agents;
+	public:
+		PreyPredatorPackageReceiver(repast::SharedContext<PreyPredatorAgent>* agents)
+			: agents(agents) {}
 
-/*
- *class GrassPackageProvider {
- *    private:
- *        repast::SharedContext<Grass>* agents;
- *    public:
- *        GrassPackageProvider(repast::SharedContext<Grass>* agents) : agents(agents) {}
- *
- *        void providePackage(Grass* agent, std::vector<GrassPackage>& out);
- *        void provideContent(repast::AgentRequest req, std::vector<GrassPackage>& out);
- *};
- *
- *class GrassPackageReceiver {
- *    private:
- *        repast::SharedContext<Grass>* agents;
- *    public:
- *        GrassPackageReceiver(repast::SharedContext<Grass>* agents) : agents(agents) {}
- *
- *        Grass* createAgent(GrassPackage package);
- *        void updateAgent(GrassPackage package);
- *};
- */
+		PreyPredatorAgent* createAgent(PreyPredatorPackage package);
+		void updateAgent(PreyPredatorPackage package);
+};

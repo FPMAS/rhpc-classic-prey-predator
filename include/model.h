@@ -18,11 +18,12 @@ class PreyPredatorModel {
 		unsigned int grid_width;
 		unsigned int grid_height;
 
-		PreyPackageProvider provider;
-		PreyPackageReceiver receiver;
+		PreyPredatorPackageProvider provider;
+		PreyPredatorPackageReceiver receiver;
 
-		repast::SharedContext<Prey> context;
-		Grid<Prey>* grid;
+		repast::SharedContext<PreyPredatorAgent> agent_context;
+		Grid<PreyPredatorAgent>* prey_grid;
+		Grid<PreyPredatorAgent>* predator_grid;
 
 		repast::SharedContext<Grass> grass_context;
 		Grid<Grass>* grass_grid;

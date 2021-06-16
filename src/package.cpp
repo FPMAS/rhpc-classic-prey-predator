@@ -1,24 +1,27 @@
 #include "package.h"
 
-void PreyPackageProvider::providePackage(Prey* agent, std::vector<PreyPackage>& out){
+void PreyPredatorPackageProvider::providePackage(
+		PreyPredatorAgent* agent, std::vector<PreyPredatorPackage>& out){
     out.push_back({*agent});
 }
 
-void PreyPackageProvider::provideContent(
+void PreyPredatorPackageProvider::provideContent(
 		repast::AgentRequest req,
-		std::vector<PreyPackage>& out) {
+		std::vector<PreyPredatorPackage>& out) {
     std::vector<repast::AgentId> ids = req.requestedAgents();
     for(size_t i = 0; i < ids.size(); i++){
         providePackage(agents->getAgent(ids[i]), out);
     }
 }
 
-Prey* PreyPackageReceiver::createAgent(PreyPackage package) {
-	return new Prey(package.id, package.energy);
+PreyPredatorAgent* PreyPredatorPackageReceiver::createAgent(PreyPredatorPackage package) {
+	if(package.id.agentType() == PREY)
+		return new Prey(package.id, package.energy);
+	return NULL;
 }
 
-void PreyPackageReceiver::updateAgent(PreyPackage package) {
-	Prey* agent = agents->getAgent(package.id);
+void PreyPredatorPackageReceiver::updateAgent(PreyPredatorPackage package) {
+	PreyPredatorAgent* agent = agents->getAgent(package.id);
     agent->update(package.id.currentRank(), package.energy);
 }
 
