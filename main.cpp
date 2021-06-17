@@ -1,7 +1,6 @@
 #include "model.h"
 
 int main(int argc, char** argv) {
-
 	std::string config_file = argv[1];
 	std::string prop_file = argv[2];
 

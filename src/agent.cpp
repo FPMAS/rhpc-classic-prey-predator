@@ -44,7 +44,11 @@ void PreyPredatorAgent::move(Grid<PreyPredatorAgent>& grid) {
 	grid.moveTo(this, new_location);
 	this->energy -= move_cost;
 
-	std::cout << id << " moves to [" << new_location[0] << ", " << new_location[1] << "]" << std::endl;
+#if PP_LOG
+	std::cout
+		<< id << " moves to (" << new_location[0] << ", " << new_location[1] << ")"
+		<< std::endl;
+#endif
 }
 
 void PreyPredatorAgent::reproduce(
@@ -62,9 +66,11 @@ void PreyPredatorAgent::reproduce(
 		std::vector<int> location;
 		grid.getLocation(this, location);
 
+#if PP_LOG
 		std::cout << "Agent " << this->getId()
 			<< " reproduces at (" << location[0] << "," << location[1] << "). "
 			<< "Child: " << child->getId() << std::endl;
+#endif
 
 		grid.moveTo(child, location);
 	}
@@ -77,7 +83,9 @@ void PreyPredatorAgent::die(
 		this->kill();
 
 	if(!this->isAlive()) {
+#if PP_LOG
 		std::cout << this->getId() << " dies" << std::endl;
+#endif
 		repast::RepastProcess::instance()->agentRemoved(this->getId());
 		grid.removeAgent(this);
 		context.removeAgent(this);
@@ -99,9 +107,11 @@ void Prey::eat(
 	Grass* grass = grass_grid.getObjectAt(location);
 
 	if(grass->isGrown()) {
+#if PP_LOG
 		std::cout << this->getId()
 			<< " eats (" << location[0] << "," << location[1] << ")"
 			<< std::endl;
+#endif
 		grass->reset();
 		this->energy+=Prey::energy_gain;
 	}
@@ -126,9 +136,11 @@ void Predator::eat(
 	while(it != agents.end()) {
 		if(Prey* prey = dynamic_cast<Prey*>(*it)) {
 			if(prey->isAlive()) {
+#if PP_LOG
 				std::cout << this->getId()
 					<< " eats " << prey->getId()
 					<< std::endl;
+#endif
 				prey->kill();
 				this->energy+=Predator::energy_gain;
 				break;

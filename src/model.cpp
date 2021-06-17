@@ -115,8 +115,10 @@ void PreyPredatorModel::init_preys() {
 		Prey* prey = new Prey(id);
 		agent_context.addAgent(prey);
 		grid->moveTo(prey, initial_location);
+#if PP_LOG
 		std::cout << "Init Prey " << id << " at " << initial_location
 			<< std::endl;
+#endif
 	}
 }
 
@@ -143,8 +145,10 @@ void PreyPredatorModel::init_predators() {
 		Predator* predator = new Predator(id);
 		agent_context.addAgent(predator);
 		grid->moveTo(predator, initial_location);
+#if PP_LOG
 		std::cout << "Init Predator " << id << " at " << initial_location
 			<< std::endl;
+#endif
 	}
 }
 
@@ -226,6 +230,7 @@ void PreyPredatorModel::initSchedule(repast::ScheduleRunner& runner) {
 }
 
 void PreyPredatorModel::move() {
+#if PP_LOG
 	std::set<PreyPredatorAgent*> local_agents;
 	if(agent_context.size()>0) {
 		agent_context.selectAgents(
@@ -242,7 +247,10 @@ void PreyPredatorModel::move() {
 			std::cout << "DISTANT AGENT: " << agent->getId() << std::endl;
 
 		std::cout << "MOVING AGENTS" << std::endl;
+	}
+#endif
 
+	if(agent_context.size()>0) {
 		std::vector<PreyPredatorAgent*> agents;
 		agent_context.selectAgents( repast::SharedContext<PreyPredatorAgent>::LOCAL, agents);
 
@@ -254,7 +262,9 @@ void PreyPredatorModel::move() {
 }
 
 void PreyPredatorModel::eat() {
+#if PP_LOG
 	std::cout << "AGENTS EAT" << std::endl;
+#endif
 	if(agent_context.size() > 0) {
 		std::vector<PreyPredatorAgent*> preys;
 		agent_context.selectAgents(
@@ -269,7 +279,9 @@ void PreyPredatorModel::eat() {
 }
 
 void PreyPredatorModel::reproduce() {
+#if PP_LOG
 	std::cout << "AGENTS REPRODUCE" << std::endl;
+#endif
 
 	if(agent_context.size() > 0) {
 		std::vector<PreyPredatorAgent*> preys;
@@ -285,7 +297,9 @@ void PreyPredatorModel::reproduce() {
 }
 
 void PreyPredatorModel::die() {
+#if PP_LOG
 	std::cout << "AGENTS DIE" << std::endl;
+#endif
 	if(agent_context.size() > 0) {
 		std::vector<PreyPredatorAgent*> preys;
 		agent_context.selectAgents(
@@ -308,7 +322,9 @@ void PreyPredatorModel::grow() {
 }
 
 void PreyPredatorModel::synchronize() {
+#if PP_LOG
 	std::cout << "SYNC GRID" << std::endl;
+#endif
 	// Marks agents to migrate
 	grid->balance();
 
