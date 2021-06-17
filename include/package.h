@@ -1,3 +1,6 @@
+#ifndef PP_PACKAGE_H
+#define PP_PACKAGE_H
+
 #include "agent.h"
 
 struct PreyPredatorPackage {
@@ -44,3 +47,4 @@ class PreyPredatorPackageReceiver {
 		PreyPredatorAgent* createAgent(PreyPredatorPackage package);
 		void updateAgent(PreyPredatorPackage package);
 };
+#endif

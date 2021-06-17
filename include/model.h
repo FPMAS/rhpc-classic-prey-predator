@@ -1,9 +1,14 @@
+#ifndef PP_MODEL_H
+#define PP_MODEL_H
+
 #include "repast_hpc/RepastProcess.h"
 #include "repast_hpc/Properties.h"
 #include "repast_hpc/SharedDiscreteSpace.h"
 #include "repast_hpc/GridComponents.h"
+#include "repast_hpc/SVDataSet.h"
 
 #include "package.h"
+#include "output.h"
 
 class PreyPredatorModel {
 	private:
@@ -26,6 +31,8 @@ class PreyPredatorModel {
 
 		repast::SharedContext<Grass> grass_context;
 		Grid<Grass>* grass_grid;
+
+		repast::SVDataSet* dataset;
 
 		template<typename T> Grid<T>* build_grid(std::string, boost::mpi::communicator*);
 		void init_preys();
@@ -50,6 +57,8 @@ class PreyPredatorModel {
 		void grow();
 
 		void synchronize();
+
+		~PreyPredatorModel();
 };
 
 template<typename T>
@@ -67,3 +76,4 @@ Grid<T>* PreyPredatorModel::build_grid(std::string name, boost::mpi::communicato
 
 		return grid;
 }
+#endif

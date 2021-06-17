@@ -1,3 +1,6 @@
+#ifndef PP_GRASS_H
+#define PP_GRASS_H
+
 #include "repast_hpc/AgentId.h"
 
 
@@ -22,7 +25,7 @@ class Grass {
 			return id;
 		}
 
-		bool grown() const {
+		bool isGrown() const {
 			return _grown;
 		}
 
@@ -48,7 +51,7 @@ struct GrassPackage {
 	GrassPackage(const Grass& grass) :
 		id(grass.getId()),
 		countdown(grass.countdown()),
-		grown(grass.grown()) {
+		grown(grass.isGrown()) {
 		}
 
 	template<typename Archive>
@@ -58,3 +61,4 @@ struct GrassPackage {
 			ar & grown;
 		}
 };
+#endif

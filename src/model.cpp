@@ -1,6 +1,7 @@
 #include "model.h"
 #include "repast_hpc/initialize_random.h"
 #include "repast_hpc/Random.h"
+#include "repast_hpc/SVDataSetBuilder.h"
 #include "types.h"
 
 void PreyPredatorModel::load_config() {
@@ -62,6 +63,33 @@ PreyPredatorModel::PreyPredatorModel(
 		grass_context.addProjection(grass_grid);
 
 		initializeRandom(props, comm);
+
+		// Data collection
+		// Creates the data set builder
+		std::string output_file("./model.csv");
+		repast::SVDataSetBuilder builder(
+				output_file.c_str(), ",",
+				repast::RepastProcess::instance()->getScheduleRunner().schedule()
+				);
+
+		// Create the individual data sets to be added to the builder
+		PreyDataSource* prey_data_source = new PreyDataSource(agent_context);
+		builder.addDataSource(createSVDataSource(
+					"prey", prey_data_source, std::plus<int>()
+					));
+
+		PredatorDataSource* predator_data_source = new PredatorDataSource(agent_context);
+		builder.addDataSource(createSVDataSource(
+					"predator", predator_data_source, std::plus<int>()
+					));
+
+		GrassDataSource* grass_data_source = new GrassDataSource(grass_context);
+		builder.addDataSource(createSVDataSource(
+					"grass", grass_data_source, std::plus<int>()
+					));
+
+		// Use the builder to create the data set
+		dataset = builder.createDataSet();
 	}
 
 void PreyPredatorModel::init_preys() {
@@ -183,7 +211,16 @@ void PreyPredatorModel::initSchedule(repast::ScheduleRunner& runner) {
 					this, &PreyPredatorModel::grow
 					)
 				));
-
+	runner.scheduleEvent(1.5, 1, repast::Schedule::FunctorPtr(
+				new repast::MethodFunctor<repast::DataSet>(
+					dataset, &repast::DataSet::record
+					)
+				));
+	runner.scheduleEvent(1.6, 1, repast::Schedule::FunctorPtr(
+				new repast::MethodFunctor<repast::DataSet>(
+					dataset, &repast::DataSet::write
+					)
+				));
 
 	runner.scheduleStop(stop_at);
 }
@@ -294,4 +331,8 @@ void PreyPredatorModel::synchronize() {
 	repast::RepastProcess::instance()->synchronizeAgentStates<
 		PreyPredatorPackage, PreyPredatorPackageProvider,
 		PreyPredatorPackageReceiver>(provider, receiver);
+}
+
+PreyPredatorModel::~PreyPredatorModel() {
+	delete dataset;
 }

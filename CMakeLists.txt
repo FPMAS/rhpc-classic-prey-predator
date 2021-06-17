@@ -12,7 +12,8 @@ add_executable(rhpc-classic-pp
 	src/model.cpp
 	src/agent.cpp
 	src/grass.cpp
-	src/package.cpp)
+	src/package.cpp
+	src/output.cpp)
 
 target_include_directories(rhpc-classic-pp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(rhpc-classic-pp

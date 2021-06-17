@@ -1,15 +1,15 @@
-stop.at=20
+stop.at=2000
 
-grid.width=50
-grid.height=50
+grid.width=100
+grid.height=100
 
-prey.count=20
+prey.count=250
 prey.init_energy=4
 prey.energy_gain=4
 prey.reproduction_rate=0.05
 prey.move_cost=1
 
-predator.count=20
+predator.count=170
 predator.init_energy=20
 predator.energy_gain=20
 predator.reproduction_rate=0.04

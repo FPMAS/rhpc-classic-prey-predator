@@ -98,7 +98,7 @@ void Prey::eat(
 	agent_grid.getLocation(this, location);
 	Grass* grass = grass_grid.getObjectAt(location);
 
-	if(grass->grown()) {
+	if(grass->isGrown()) {
 		std::cout << this->getId()
 			<< " eats (" << location[0] << "," << location[1] << ")"
 			<< std::endl;

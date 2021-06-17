@@ -1,4 +1,6 @@
-#ifndef CONFIG_H
+#ifndef PP_CONFIG_H
+#define PP_CONFIG_H
+
 #include "repast_hpc/SharedDiscreteSpace.h"
 
 template<typename T>

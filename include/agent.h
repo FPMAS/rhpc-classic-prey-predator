@@ -1,3 +1,6 @@
+#ifndef PP_AGENT_H
+#define PP_AGENT_H
+
 #include "repast_hpc/AgentId.h"
 #include "repast_hpc/SharedContext.h"
 #include "config.h"
@@ -100,3 +103,4 @@ class Predator : public PreyPredatorAgent {
 				) override;
 
 };
+#endif
