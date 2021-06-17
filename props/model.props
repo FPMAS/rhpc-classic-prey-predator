@@ -4,7 +4,16 @@ grid.width=50
 grid.height=50
 
 prey.count=20
+prey.init_energy=4
+prey.energy_gain=4
+prey.reproduction_rate=0.05
+prey.move_cost=1
+
 predator.count=20
+predator.init_energy=20
+predator.energy_gain=20
+predator.reproduction_rate=0.04
+predator.move_cost=1
 
 grass.init_rate=0.5
 grass.growing_rate=8

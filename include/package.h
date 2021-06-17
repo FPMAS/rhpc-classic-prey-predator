@@ -1,20 +1,23 @@
-#include "prey.h"
+#include "agent.h"
 
 struct PreyPredatorPackage {
 	repast::AgentId id;
 	int energy;
+	bool alive;
 
 	PreyPredatorPackage() {};
 	
 	PreyPredatorPackage(const PreyPredatorAgent& agent) :
 		id(agent.getId()),
-		energy(agent.getEnergy()) {
+		energy(agent.getEnergy()),
+		alive(agent.isAlive()) {
 		}
 
 	template<typename Archive>
 		void serialize(Archive& ar, const unsigned int) {
 			ar & id;
 			ar & energy;
+			ar & alive;
 		}
 };
 

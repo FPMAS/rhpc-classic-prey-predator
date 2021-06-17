@@ -1,5 +1,6 @@
 #include "repast_hpc/AgentId.h"
 
+
 class Grass {
 	private:
 		repast::AgentId id;
@@ -8,7 +9,6 @@ class Grass {
 
 	public:
 		static int growing_rate;
-		static const int type;
 
 		Grass(repast::AgentId id, bool grown, int countdown)
 			: id(id), _grown(grown), _countdown(countdown) {

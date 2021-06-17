@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 add_executable(rhpc-classic-pp
 	main.cpp
 	src/model.cpp
-	src/prey.cpp
+	src/agent.cpp
 	src/grass.cpp
 	src/package.cpp)
 

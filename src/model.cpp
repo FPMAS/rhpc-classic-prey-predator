@@ -1,11 +1,49 @@
 #include "model.h"
 #include "repast_hpc/initialize_random.h"
 #include "repast_hpc/Random.h"
+#include "types.h"
+
+void PreyPredatorModel::load_config() {
+	Prey::init_energy = repast::strToInt(props.getProperty("prey.init_energy"));
+	Prey::energy_gain = repast::strToInt(props.getProperty("prey.energy_gain"));
+	Prey::move_cost = repast::strToInt(props.getProperty("prey.move_cost"));
+	Prey::reproduction_rate = repast::strToDouble(props.getProperty("prey.reproduction_rate"));
+
+	Predator::init_energy = repast::strToInt(props.getProperty("predator.init_energy"));
+	Predator::energy_gain = repast::strToInt(props.getProperty("predator.energy_gain"));
+	Predator::move_cost = repast::strToInt(props.getProperty("predator.move_cost"));
+	Predator::reproduction_rate = repast::strToDouble(props.getProperty("predator.reproduction_rate"));
+
+	Grass::growing_rate = repast::strToInt(props.getProperty("grass.growing_rate"));
+}
+
+void PreyPredatorModel::print_config() {
+	std::cout << "Current configuration:" << std::endl;
+	std::cout << "Grid::width=" << grid_width << std::endl;
+	std::cout << "Grid::height=" << grid_height << std::endl;
+
+	std::cout << "Prey::count=" << prey_count << std::endl;
+	std::cout << "Prey::init_energy=" << Prey::init_energy << std::endl;
+	std::cout << "Prey::energy_gain=" << Prey::energy_gain << std::endl;
+	std::cout << "Prey::move_cost=" << Prey::move_cost << std::endl;
+	std::cout << "Prey::reproduction_rate=" << Prey::reproduction_rate << std::endl;
+
+	std::cout << "Predator::count=" << predator_count << std::endl;
+	std::cout << "Predator::init_energy=" << Predator::init_energy << std::endl;
+	std::cout << "Predator::energy_gain=" << Predator::energy_gain << std::endl;
+	std::cout << "Predator::move_cost=" << Predator::move_cost << std::endl;
+	std::cout << "Predator::reproduction_rate=" << Predator::reproduction_rate << std::endl;
+
+	std::cout << "Grass::growing_rate=" << Grass::growing_rate << std::endl;
+
+	std::cout << "Stop at: " << stop_at << std::endl;
+}
 
 PreyPredatorModel::PreyPredatorModel(
 		std::string prop_file, int argc, char** argv,
 		boost::mpi::communicator* comm) :
-	agent_context(comm), grass_context(comm), props(prop_file, argc, argv, comm),
+	agent_context(comm), grass_context(comm),
+	props(prop_file, argc, argv, comm),
 	stop_at(repast::strToInt(props.getProperty("stop.at"))),
 	prey_count(repast::strToInt(props.getProperty("prey.count"))),
 	local_prey_count(prey_count/comm->size()),
@@ -14,11 +52,11 @@ PreyPredatorModel::PreyPredatorModel(
 	grid_width(repast::strToInt(props.getProperty("grid.width"))),
 	grid_height(repast::strToInt(props.getProperty("grid.height"))),
 	provider(&agent_context), receiver(&agent_context) {
-		prey_grid = build_grid<PreyPredatorAgent>("PreyGrid", comm);   
-		agent_context.addProjection(prey_grid);
+		load_config();
+		print_config();
 
-		predator_grid = build_grid<PreyPredatorAgent>("PredatorGrid", comm);   
-		//agent_context.addProjection(predator_grid);
+		grid = build_grid<PreyPredatorAgent>("PreyGrid", comm);   
+		agent_context.addProjection(grid);
 
 		grass_grid = build_grid<Grass>("GrassGrid", comm);
 		grass_context.addProjection(grass_grid);
@@ -31,13 +69,13 @@ void PreyPredatorModel::init_preys() {
 
 	repast::IntUniformGenerator gen_x = 
 		repast::Random::instance()->createUniIntGenerator(
-				prey_grid->dimensions().origin().getX(),
-				prey_grid->dimensions().origin().getX() + prey_grid->dimensions().extents().getX()-1
+				grid->dimensions().origin().getX(),
+				grid->dimensions().origin().getX() + grid->dimensions().extents().getX()-1
 				);
 	repast::IntUniformGenerator gen_y = 
 		repast::Random::instance()->createUniIntGenerator(
-				prey_grid->dimensions().origin().getY(),
-				prey_grid->dimensions().origin().getY() + prey_grid->dimensions().extents().getY()-1
+				grid->dimensions().origin().getY(),
+				grid->dimensions().origin().getY() + grid->dimensions().extents().getY()-1
 				);
 
 	for(int i = 0; i < local_prey_count; i++) {
@@ -48,8 +86,37 @@ void PreyPredatorModel::init_preys() {
 
 		Prey* prey = new Prey(id);
 		agent_context.addAgent(prey);
-		prey_grid->moveTo(prey, initial_location);
-		std::cout << id << " init location: " << initial_location << std::endl;
+		grid->moveTo(prey, initial_location);
+		std::cout << "Init Prey " << id << " at " << initial_location
+			<< std::endl;
+	}
+}
+
+void PreyPredatorModel::init_predators() {
+	int rank = repast::RepastProcess::instance()->rank();
+
+	repast::IntUniformGenerator gen_x = 
+		repast::Random::instance()->createUniIntGenerator(
+				grid->dimensions().origin().getX(),
+				grid->dimensions().origin().getX() + grid->dimensions().extents().getX()-1
+				);
+	repast::IntUniformGenerator gen_y = 
+		repast::Random::instance()->createUniIntGenerator(
+				grid->dimensions().origin().getY(),
+				grid->dimensions().origin().getY() + grid->dimensions().extents().getY()-1
+				);
+
+	for(int i = 0; i < local_predator_count; i++) {
+		repast::AgentId id(Predator::current_predator_id++, rank, PREDATOR);
+		id.currentRank(rank);
+
+		repast::Point<int> initial_location(gen_x.next(), gen_y.next());
+
+		Predator* predator = new Predator(id);
+		agent_context.addAgent(predator);
+		grid->moveTo(predator, initial_location);
+		std::cout << "Init Predator " << id << " at " << initial_location
+			<< std::endl;
 	}
 }
 
@@ -71,7 +138,9 @@ void PreyPredatorModel::init_grass() {
 			int countdown = 0;
 			if(!grown)
 				countdown = rd_countdown.next();
-			repast::AgentId agent_id(id++, rank, Grass::type, rank);
+			repast::AgentId agent_id(id++, rank, GRASS);
+			agent_id.currentRank(rank);
+
 			Grass* grass = new Grass(agent_id, grown, countdown);
 			grass_context.addAgent(grass);
 
@@ -85,6 +154,7 @@ void PreyPredatorModel::init_grass() {
 void PreyPredatorModel::init() {
 	init_grass();
 	init_preys();
+	init_predators();
 }
 
 void PreyPredatorModel::initSchedule(repast::ScheduleRunner& runner) {
@@ -108,40 +178,55 @@ void PreyPredatorModel::initSchedule(repast::ScheduleRunner& runner) {
 					this, &PreyPredatorModel::die
 					)
 				));
+	runner.scheduleEvent(1.4, 1, repast::Schedule::FunctorPtr(
+				new repast::MethodFunctor<PreyPredatorModel> (
+					this, &PreyPredatorModel::grow
+					)
+				));
 
 
 	runner.scheduleStop(stop_at);
 }
 
 void PreyPredatorModel::move() {
-	std::cout << "MOVING AGENTS" << std::endl;
-	std::vector<PreyPredatorAgent*> agents;
-	
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, agents);
-
-	for(auto agent : agents)
-		agent->move(*predator_grid, *prey_grid);
-
 	std::set<PreyPredatorAgent*> local_agents;
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, local_agents);
-	for(auto agent : local_agents)
-		std::cout << "LOCAL AGENT: " << agent->getId() << " - " << agent->getEnergy() << std::endl;
+	if(agent_context.size()>0) {
+		agent_context.selectAgents(
+				repast::SharedContext<PreyPredatorAgent>::LOCAL, local_agents
+				);
+		for(auto agent : local_agents)
+			std::cout << "LOCAL AGENT: " << agent->getId() << " - " << agent->getEnergy() << std::endl;
 
-	local_agents.clear();
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::NON_LOCAL, local_agents);
-	for(auto agent : local_agents)
-		std::cout << "DISTANT AGENT: " << agent->getId() << std::endl;
+		local_agents.clear();
+		agent_context.selectAgents(
+				repast::SharedContext<PreyPredatorAgent>::NON_LOCAL, local_agents
+				);
+		for(auto agent : local_agents)
+			std::cout << "DISTANT AGENT: " << agent->getId() << std::endl;
 
+		std::cout << "MOVING AGENTS" << std::endl;
+
+		std::vector<PreyPredatorAgent*> agents;
+		agent_context.selectAgents( repast::SharedContext<PreyPredatorAgent>::LOCAL, agents);
+
+		for(auto agent : agents)
+			agent->move(*grid);
+	}
+	
 	this->synchronize();
 }
 
 void PreyPredatorModel::eat() {
 	std::cout << "AGENTS EAT" << std::endl;
-	std::vector<PreyPredatorAgent*> preys;
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
+	if(agent_context.size() > 0) {
+		std::vector<PreyPredatorAgent*> preys;
+		agent_context.selectAgents(
+				repast::SharedContext<PreyPredatorAgent>::LOCAL, preys
+				);
 
-	for(auto agent : preys)
-		agent->eat(*predator_grid, *prey_grid, *grass_grid);
+		for(auto agent : preys)
+			agent->eat(*grid, *grass_grid);
+	}
 
 	this->synchronize();
 }
@@ -149,31 +234,46 @@ void PreyPredatorModel::eat() {
 void PreyPredatorModel::reproduce() {
 	std::cout << "AGENTS REPRODUCE" << std::endl;
 
-	std::vector<PreyPredatorAgent*> preys;
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
+	if(agent_context.size() > 0) {
+		std::vector<PreyPredatorAgent*> preys;
+		agent_context.selectAgents(
+				repast::SharedContext<PreyPredatorAgent>::LOCAL, preys
+				);
 
-	for(auto agent : preys)
-		agent->reproduce(agent_context, *predator_grid, *prey_grid);
+		for(auto agent : preys)
+			agent->reproduce(agent_context, *grid);
+	}
 
 	this->synchronize();
 }
 
 void PreyPredatorModel::die() {
 	std::cout << "AGENTS DIE" << std::endl;
-	std::vector<PreyPredatorAgent*> preys;
-	agent_context.selectAgents(repast::SharedContext<PreyPredatorAgent>::LOCAL, preys);
+	if(agent_context.size() > 0) {
+		std::vector<PreyPredatorAgent*> preys;
+		agent_context.selectAgents(
+				repast::SharedContext<PreyPredatorAgent>::LOCAL, preys
+				);
 
-	for(auto agent : preys)
-		agent->die(agent_context, *predator_grid, *prey_grid);
+		for(auto agent : preys)
+			agent->die(agent_context, *grid);
+	}
 
 	this->synchronize();
+}
+
+void PreyPredatorModel::grow() {
+	std::vector<Grass*> grass;
+	grass_context.selectAgents(repast::SharedContext<Grass>::LOCAL, grass);
+
+	for(auto g : grass)
+		g->grow();
 }
 
 void PreyPredatorModel::synchronize() {
 	std::cout << "SYNC GRID" << std::endl;
 	// Marks agents to migrate
-	//predator_grid->balance();
-	prey_grid->balance();
+	grid->balance();
 
 	/*
 	 * Sync preys

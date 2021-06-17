@@ -22,15 +22,18 @@ class PreyPredatorModel {
 		PreyPredatorPackageReceiver receiver;
 
 		repast::SharedContext<PreyPredatorAgent> agent_context;
-		Grid<PreyPredatorAgent>* prey_grid;
-		Grid<PreyPredatorAgent>* predator_grid;
+		Grid<PreyPredatorAgent>* grid;
 
 		repast::SharedContext<Grass> grass_context;
 		Grid<Grass>* grass_grid;
 
 		template<typename T> Grid<T>* build_grid(std::string, boost::mpi::communicator*);
 		void init_preys();
+		void init_predators();
 		void init_grass();
+
+		void load_config();
+		void print_config();
 
 	public:
 		PreyPredatorModel(
@@ -44,6 +47,7 @@ class PreyPredatorModel {
 		void eat();
 		void reproduce();
 		void die();
+		void grow();
 
 		void synchronize();
 };

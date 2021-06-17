@@ -1,6 +1,5 @@
 #include "grass.h"
 
-const int Grass::type = 1;
 int Grass::growing_rate = 8;
 
 void Grass::grow() {
