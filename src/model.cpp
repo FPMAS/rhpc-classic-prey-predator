@@ -332,21 +332,20 @@ void PreyPredatorModel::synchronize() {
 	 * Sync preys
 	 */
 	// Move agents across processes
-	repast::RepastProcess::instance()->synchronizeAgentStatus<
-		PreyPredatorAgent, PreyPredatorPackage,
-		PreyPredatorPackageProvider, PreyPredatorPackageReceiver>(
-				agent_context, provider, receiver, receiver);
+	repast::RepastProcess::instance()
+		->synchronizeAgentStatus<PreyPredatorAgent, PreyPredatorPackage>(
+				agent_context, provider, receiver, receiver
+				);
 
 	// Synchronizes projection: builds agent copies in buffer zones
-	repast::RepastProcess::instance()->synchronizeProjectionInfo<
-		PreyPredatorAgent, PreyPredatorPackage,
-		PreyPredatorPackageProvider, PreyPredatorPackageReceiver>(
-				agent_context, provider, receiver, receiver);
+	repast::RepastProcess::instance()
+		->synchronizeProjectionInfo<PreyPredatorAgent, PreyPredatorPackage>(
+				agent_context, provider, receiver, receiver
+				);
 
 	// Updates agent data
-	repast::RepastProcess::instance()->synchronizeAgentStates<
-		PreyPredatorPackage, PreyPredatorPackageProvider,
-		PreyPredatorPackageReceiver>(provider, receiver);
+	repast::RepastProcess::instance()
+		->synchronizeAgentStates<PreyPredatorPackage>(provider, receiver);
 }
 
 PreyPredatorModel::~PreyPredatorModel() {
